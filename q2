@@ -1,0 +1,49 @@
+import nltk
+from nltk.corpus import stopwords
+from nltk.corpus import wordnet
+from nltk.stem import PorterStemmer, WordNetLemmatizer
+from nltk.tokenize import word_tokenize
+from nltk import pos_tag
+nltk.download('averaged_perceptron_tagger_eng')
+nltk.download('punkt_tab')
+nltk.download('wordnet')
+nltk.download('stopwords')
+
+
+sentence = "The dangerous geese were standing menacingly on their hind legs."
+
+tokens = word_tokenize(sentence)
+
+# stemming
+stemmer = PorterStemmer()
+stemmed_tokens = [stemmer.stem(token) for token in tokens]
+print("Stemmed tokens:", stemmed_tokens)
+
+# lemmatizing 
+lemmatizer = WordNetLemmatizer()
+
+
+def get_wordnet_pos(treebank_tag):
+    if treebank_tag.startswith('J'):
+        return wordnet.ADJ
+    elif treebank_tag.startswith('V'):
+        return wordnet.VERB
+    elif treebank_tag.startswith('N'):
+        return wordnet.NOUN
+    elif treebank_tag.startswith('R'):
+        return wordnet.ADV
+    else:
+        return ' '
+
+# POS tags
+pos_tags = pos_tag(tokens)
+print("POS tags:", pos_tags)
+
+# POS convert and lemmaize
+lemmas = [lemmatizer.lemmatize(token, get_wordnet_pos(tag)) for token, tag in pos_tags]
+print("Lemmatized tokens:", lemmas)
+
+# part last
+print("Differences between stems and lemmas:")
+for original, stemmed, lemma in zip(tokens, stemmed_tokens, lemmas):
+    print(f"original: {original}, stem: {stemmed}, lemma: {lemma}")

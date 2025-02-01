@@ -1,0 +1,96 @@
+import string
+import random
+import numpy as np
+import nltk
+from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
+from nltk.stem import PorterStemmer
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import precision_score, recall_score, f1_score, accuracy_score, confusion_matrix
+
+nltk.download('punkt')
+nltk.download('stopwords')
+
+# Read training and testing data
+train_path = "./train_file_hw1"
+test_path = "./test_file_hw1"
+
+with open(train_path, "r") as fp:
+    train_data = [line.strip() for line in fp.readlines()]
+
+with open(test_path, "r") as fp:
+    test_data = [line.strip() for line in fp.readlines()]
+
+def split_data(data):
+    labels = []
+    documents = []
+    for line in data:
+        label, text = line.split(maxsplit=1)
+        labels.append(1 if label == 'positive' else 0)
+        documents.append(text)
+    return labels, documents
+
+train_labels, train_docs = split_data(train_data)
+test_labels, test_docs = split_data(test_data)
+
+# Prints for question 1 and 2
+print("positive count", train_labels.count(1))
+print("second doc:", train_docs[1])
+
+
+stop_words = set(stopwords.words('english'))
+stemmer = PorterStemmer()
+
+def preprocess_text(text):
+    # Tokenizes the input
+    tokens = word_tokenize(text.lower())
+    # remove punctuation
+    tokens = [token for token in tokens if token not in string.punctuation]
+    # remove stop words
+    tokens = [token for token in tokens if token not in stop_words]
+    # stemming
+    tokens = [stemmer.stem(token) for token in tokens]
+    return tokens
+
+train_docs_preprocessed = [preprocess_text(doc) for doc in train_docs]
+test_docs_preprocessed = [preprocess_text(doc) for doc in test_docs]
+
+#prints for question 3 and 4
+print("fifth:", word_tokenize(train_docs[4].lower()))
+print("fifth 2:", train_docs_preprocessed[4])
+
+all_train_tokens = [token for doc in train_docs_preprocessed for token in doc]
+all_test_tokens = [token for doc in test_docs_preprocessed for token in doc]
+
+#question 5
+print(len(set(all_train_tokens)))
+print(len(set(all_test_tokens)))
+print(len(set(all_train_tokens + all_test_tokens)))
+
+#creating BoW
+vectorizer = CountVectorizer()
+combined_docs = [" ".join(doc) for doc in train_docs_preprocessed + test_docs_preprocessed]
+
+#struggled with this part so used stackoverflow: https://stackoverflow.com/questions/22687365/concatenate-custom-features-with-countvectorizer
+BoW = vectorizer.fit_transform(combined_docs)
+
+train_features = BoW[:len(train_docs_preprocessed)]
+test_features = BoW[len(train_docs_preprocessed):]
+
+nb_classifier = MultinomialNB()
+nb_classifier.fit(train_features, train_labels)
+nb_predictions = nb_classifier.predict(test_features)
+
+lr_classifier = LogisticRegression(C=1, max_iter=100)
+lr_classifier.fit(train_features, train_labels)
+lr_predictions = lr_classifier.predict(test_features)
+
+# used confusion matrix function from sklearn documentation: https://scikit-learn.org/stable/modules/generated/sklearn.metrics.confusion_matrix.html
+nb_cm = confusion_matrix(test_labels, nb_predictions)
+print("bayes:\n", nb_cm)
+
+#same here
+lr_cm = confusion_matrix(test_labels, lr_predictions)
+print("lr cm:\n", lr_cm)
